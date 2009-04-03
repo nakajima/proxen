@@ -28,7 +28,7 @@ module Proxen
     end
 
     def handle(instance, sym, *args, &block)
-      if target = target_for(instance, sym) and should?(instance, sym)
+      if target = target_for(instance, sym)
         instance.__send__(target).__send__(sym, *args, &block)
       end
     end
@@ -43,7 +43,7 @@ module Proxen
 
     private
 
-    def should?(instance, sym)
+    def proxying?(instance, sym)
       case @options[:if] || @options[:unless]
       when Proc   then calls?(sym)
       when Regexp then match?(sym)
@@ -74,6 +74,7 @@ module Proxen
     end
 
     def target_for(instance, sym)
+      return nil unless proxying?(instance, sym)
       @targets.detect { |t| instance.__send__(t).respond_to?(sym) }
     end
   end
