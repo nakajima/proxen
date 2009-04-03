@@ -65,7 +65,7 @@ describe Proxen do
     }.should raise_error(NoMethodError)
   end
 
-  it "accepts :if method" do
+  it "accepts :unless method" do
     @klass = Class.new do
       proxy_to :foo, :unless => :should_not?
 
@@ -78,6 +78,44 @@ describe Proxen do
 
       def should_not?(sym)
         sym == :buzz
+      end
+    end
+
+    @klass.new.fizz.should == :proxied
+
+    proc {
+      @klass.new.buzz
+    }.should raise_error(NoMethodError)
+  end
+
+  it "accepts :if proc" do
+    @klass = Class.new do
+      proxy_to :foo, :if => proc { |sym| sym == :fizz }
+
+      def foo
+        Class.new {
+          def fizz; :proxied end
+          def buzz; :proxied end
+        }.new
+      end
+    end
+
+    @klass.new.fizz.should == :proxied
+
+    proc {
+      @klass.new.buzz
+    }.should raise_error(NoMethodError)
+  end
+
+  it "accepts :unless proc" do
+    @klass = Class.new do
+      proxy_to :foo, :unless => proc { |sym| sym == :buzz }
+
+      def foo
+        Class.new {
+          def fizz; :proxied end
+          def buzz; :proxied end
+        }.new
       end
     end
 

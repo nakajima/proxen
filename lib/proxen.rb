@@ -45,9 +45,17 @@ module Proxen
 
     def should?(instance, sym)
       case @options[:if] || @options[:unless]
+      when Proc   then calls?(sym)
       when Regexp then match?(sym)
       when Symbol then sends?(instance, sym)
       else true
+      end
+    end
+
+    def calls?(sym)
+      case
+      when fn = @options[:if]      then fn.call(sym)
+      when fn = @options[:unless]  then not fn.call(sym)
       end
     end
 
