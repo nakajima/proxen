@@ -184,4 +184,20 @@ describe Proxen do
     @klass.new.fizz.should == :proxied
     @klass.new.buzz.should == :proxied
   end
+
+  it "defines methods so that they don't require method missing" do
+    @compiled = Class.new {
+      proxy_to :foo, :blank_slate => true, :compile => true
+
+      def foo
+        :COMPILED!
+      end
+    }.new
+
+    @compiled.to_s
+
+    mock.proxy(Proxen::Proxy).handle(anything).never
+
+    @compiled.to_s.should == 'COMPILED!'
+  end
 end

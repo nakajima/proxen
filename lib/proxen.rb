@@ -29,7 +29,12 @@ module Proxen
 
     def handle(instance, sym, *args, &block)
       if target = target_for(instance, sym)
-        instance.__send__(target).__send__(sym, *args, &block)
+        if @options[:compile]
+          compile(target, sym)
+          instance.__send__(sym, *args, &block)
+        else
+          instance.__send__(target).__send__(sym, *args, &block)
+        end
       end
     end
 
@@ -42,6 +47,14 @@ module Proxen
     end
 
     private
+    
+    def compile(receiver, sym)
+      @klass.class_eval(<<-END, __FILE__, __LINE__)
+        def #{sym}(*args, &block)
+          #{receiver}.send(#{sym.inspect}, *args, &block)
+        end
+      END
+    end
 
     def proxying?(instance, sym)
       case @options[:if] || @options[:unless]
