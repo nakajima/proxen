@@ -1,42 +1,81 @@
 module Proxen
-  def self.blankify(klass)
-    klass.class_eval do
-      instance_methods.each do |sym|
-        undef_method(sym) unless sym.to_s =~ /__/
+  class Proxy
+    class << self
+      def add(klass, *args)
+        store[klass] = new(klass, *args)
+      end
+
+      def handle(instance, sym, *args, &block)
+        klass = Object.instance_method(:class).bind(instance).call
+        if proxy = store[klass]
+          proxy.handle(instance, sym, *args, &block)
+        end
+      end
+
+      private
+
+      def store
+        @store ||= {}
       end
     end
-  end
 
-  def self.conditional(options)
-    case
-    when options[:if]
-      "sym.to_s =~ #{options[:if].inspect}"
-    when options[:unless]
-      "! (sym.to_s =~ #{options[:unless].inspect})"
-    else
-      "true"
+    def initialize(klass, *args)
+      @klass = klass
+      @options = args.last.is_a?(Hash) ? args.pop : {}
+      @targets = Array(args).flatten
+
+      blankify! if @options[:blank_slate]
+    end
+
+    def handle(instance, sym, *args, &block)
+      if target = target_for(instance, sym) and should?(instance, sym)
+        instance.__send__(target).__send__(sym, *args, &block)
+      end
+    end
+
+    def blankify!
+      @klass.class_eval do
+        instance_methods.each do |sym|
+          undef_method(sym) unless sym.to_s =~ /__/
+        end
+      end
+    end
+
+    private
+
+    def should?(instance, sym)
+      case @options[:if] || @options[:unless]
+      when Regexp then match?(sym)
+      when Symbol then sends?(instance, sym)
+      else true
+      end
+    end
+
+    def sends?(instance, sym)
+      case
+      when cond = @options[:if]      then instance.__send__(cond, sym)
+      when cond = @options[:unless]  then not instance.__send__(cond, sym)
+      end
+    end
+
+    def match?(sym)
+      case
+      when regex = @options[:if]      then sym.to_s =~ regex
+      when regex = @options[:unless]  then not sym.to_s =~ regex
+      end
+    end
+
+    def target_for(instance, sym)
+      @targets.detect { |t| instance.__send__(t).respond_to?(sym) }
     end
   end
 
   def proxy_to(*targets)
-    options = targets.last.is_a?(Hash) ? targets.pop : {}
-    targets = Array(targets).flatten
-
-    Proxen.blankify(self) if options[:blank_slate]
+    Proxen::Proxy.add(self, *targets)
 
     class_eval(<<-END, __FILE__, __LINE__)
       def method_missing(sym, *args, &block)
-        super unless #{Proxen.conditional(options)}
-
-        receiver = #{targets.inspect}.detect do |t|
-          __send__(t).respond_to?(sym)
-        end
-
-        if receiver
-          __send__(receiver).send(sym, *args, &block)
-        else
-          super
-        end
+        Proxen::Proxy.handle(self, sym, *args, &block) || super
       end
     END
   end

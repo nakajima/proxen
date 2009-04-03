@@ -42,6 +42,52 @@ describe Proxen do
     @klass.new.inspect.should == :proxied
   end
 
+  it "accepts :if method" do
+    @klass = Class.new do
+      proxy_to :foo, :if => :should?
+
+      def foo
+        Class.new {
+          def fizz; :proxied end
+          def buzz; :proxied end
+        }.new
+      end
+
+      def should?(sym)
+        sym != :buzz
+      end
+    end
+
+    @klass.new.fizz.should == :proxied
+
+    proc {
+      @klass.new.buzz
+    }.should raise_error(NoMethodError)
+  end
+
+  it "accepts :if method" do
+    @klass = Class.new do
+      proxy_to :foo, :unless => :should_not?
+
+      def foo
+        Class.new {
+          def fizz; :proxied end
+          def buzz; :proxied end
+        }.new
+      end
+
+      def should_not?(sym)
+        sym == :buzz
+      end
+    end
+
+    @klass.new.fizz.should == :proxied
+
+    proc {
+      @klass.new.buzz
+    }.should raise_error(NoMethodError)
+  end
+
   it "accepts :if regexen" do
     @klass = Class.new do
       proxy_to :foo, :if => /zz/
