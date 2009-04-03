@@ -53,6 +53,8 @@ You can also use a Proc:
       end
     end
 
+## Blank Slate Proxies
+
 You can also make the class a blank slate, meaning *everything* will be proxied:
 
     class Something
@@ -64,6 +66,22 @@ You can also make the class a blank slate, meaning *everything* will be proxied:
     end
 
     Something.new.inspect # Proxied to other_thing
+
+## Multiple Proxy Targets
+
+To specify multiple proxy targets, just pass them all:
+
+    class Something
+      proxy_to :other_thing, :something_else
+
+      def other_thing
+        # Whatever
+      end
+
+      def something_else
+        # And again
+      end
+    end
 
 That's all for now.
 
