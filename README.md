@@ -1,4 +1,4 @@
-# proxen
+# Proxen
 
 Easy `method_missing` proxies.
 
@@ -14,6 +14,8 @@ It's sort of like ActiveSupport's `Module#delegate`, only for proxying.
       end
     end
 
+## Conditional Proxying via `:if` (or `:unless`)
+
 You can pass a regex, so only matching methods will be proxied:
 
     class Something
@@ -26,6 +28,30 @@ You can pass a regex, so only matching methods will be proxied:
 
     Something.new.hello # Will be proxied
     Something.new._hello # Won't be proxied
+
+How 'bout a symbol instead:
+
+    class Something
+      proxy_to :other_thing, :if => :should?
+
+      def should?(sym)
+        PROXY_METHODS.include?(sym)
+      end
+
+      def other_thing
+        OtherThing.new
+      end
+    end
+
+You can also use a Proc:
+
+    class Something
+      proxy_to :other_thing, :if => proc { |sym| sym == :yes }
+
+      def other_thing
+        OtherThing.new
+      end
+    end
 
 You can also make the class a blank slate, meaning *everything* will be proxied:
 
