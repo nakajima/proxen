@@ -5,10 +5,17 @@ module Proxen
         store[klass] = new(klass, *args)
       end
 
-      def handle(instance, sym, *args, &block)
+      def handle_method_missing(instance, sym, *args, &block)
         klass = Object.instance_method(:class).bind(instance).call
         if proxy = store[klass]
-          proxy.handle(instance, sym, *args, &block)
+          proxy.handle_method_missing(instance, sym, *args, &block)
+        end
+      end
+
+      def handle_respond_to(instance, method, include_private)
+        klass = Object.instance_method(:class).bind(instance).call
+        if proxy = store[klass]
+          proxy.handle_respond_to(instance, method, include_private)
         end
       end
 
@@ -27,7 +34,7 @@ module Proxen
       blankify! if @options[:blank_slate]
     end
 
-    def handle(instance, sym, *args, &block)
+    def handle_method_missing(instance, sym, *args, &block)
       if target = target_for(instance, sym)
         if @options[:compile]
           compile(target, sym)
@@ -35,6 +42,12 @@ module Proxen
         else
           instance.__send__(target).__send__(sym, *args, &block)
         end
+      end
+    end
+
+    def handle_respond_to(instance, method, include_private = false)
+      if target = target_for(instance, method)
+        instance.__send__(target).respond_to?(method, include_private)
       end
     end
 
@@ -94,10 +107,14 @@ module Proxen
 
   def proxy_to(*targets)
     Proxen::Proxy.add(self, *targets)
-
+    
     class_eval(<<-END, __FILE__, __LINE__)
       def method_missing(sym, *args, &block)
-        Proxen::Proxy.handle(self, sym, *args, &block) || super
+        Proxen::Proxy.handle_method_missing(self, sym, *args, &block) || super
+      end
+
+      def respond_to?(method, include_private = false)
+        Proxen::Proxy.handle_respond_to(self, method, include_private) || super
       end
     END
   end

@@ -10,8 +10,9 @@ describe Proxen do
         Class.new { def bar; :proxied end }.new
       end
     end
-
+    
     @klass.new.bar.should == :proxied
+    @klass.new.respond_to?(:bar).should be_true
   end
 
   it "respects other method missings" do
@@ -58,6 +59,10 @@ describe Proxen do
       end
     end
 
+
+    @klass.new.respond_to?(:fizz).should be_true
+    @klass.new.respond_to?(:buzz).should be_false
+
     @klass.new.fizz.should == :proxied
 
     proc {
@@ -81,6 +86,9 @@ describe Proxen do
       end
     end
 
+    @klass.new.respond_to?(:fizz).should be_true
+    @klass.new.respond_to?(:buzz).should be_false
+
     @klass.new.fizz.should == :proxied
 
     proc {
@@ -99,6 +107,9 @@ describe Proxen do
         }.new
       end
     end
+
+    @klass.new.respond_to?(:fizz).should be_true
+    @klass.new.respond_to?(:buzz).should be_false
 
     @klass.new.fizz.should == :proxied
 
@@ -119,6 +130,9 @@ describe Proxen do
       end
     end
 
+    @klass.new.respond_to?(:fizz).should be_true
+    @klass.new.respond_to?(:buzz).should be_false
+
     @klass.new.fizz.should == :proxied
 
     proc {
@@ -138,6 +152,11 @@ describe Proxen do
         }.new
       end
     end
+
+
+    @klass.new.respond_to?(:fizz).should be_true
+    @klass.new.respond_to?(:buzz).should be_true
+    @klass.new.respond_to?(:baz).should  be_false
 
     @klass.new.fizz.should == :proxied
     @klass.new.buzz.should == :proxied
@@ -160,6 +179,10 @@ describe Proxen do
       end
     end
 
+    @klass.new.respond_to?(:fizz).should be_false
+    @klass.new.respond_to?(:buzz).should be_false
+    @klass.new.respond_to?(:baz).should  be_true
+
     @klass.new.baz.should == :proxied
 
     proc {
@@ -180,6 +203,9 @@ describe Proxen do
         Class.new { def buzz; :proxied end }.new
       end
     end
+
+    @klass.new.respond_to?(:foo).should be_true
+    @klass.new.respond_to?(:bar).should be_true
 
     @klass.new.fizz.should == :proxied
     @klass.new.buzz.should == :proxied
